@@ -6,7 +6,7 @@ import { ArrowDownUp, Zap, Shield, AlertTriangle, Lock, ChevronDown, RefreshCw }
 import toast from 'react-hot-toast'
 import { validateSwapInput, calculatePriceImpact } from '@/utils/validation'
 import { formatCurrency, formatPercentage } from '@/utils/format'
-import { TOKENS } from '@/utils/constants'
+import { TOKENS, POOL_RESERVES } from '@/utils/constants'
 
 export function SwapTerminal() {
   const [fromToken, setFromToken] = useState(TOKENS[0])
@@ -41,20 +41,21 @@ export function SwapTerminal() {
     // Simulate API call for rates
     const timer = setTimeout(() => {
       setRatesLoaded(true)
-    }, 1000)
+    }, 700)
     
     return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    if (fromAmount && parseFloat(fromAmount) > 0 && ratesLoaded) {
+    if (fromAmount !== '' && !isNaN(parseFloat(fromAmount)) && parseFloat(fromAmount) > 0 && ratesLoaded) {
       const rateKey = `${fromToken.symbol}-${toToken.symbol}`
       const rate = exchangeRates[rateKey as keyof typeof exchangeRates] || 1
       const calculated = parseFloat(fromAmount) * rate
       setToAmount(calculated.toFixed(6))
       
-      // Calculate price impact (simulated)
-      const impact = calculatePriceImpact(parseFloat(fromAmount), userBalances[fromToken.symbol as keyof typeof userBalances])
+      // Calculate price impact (use pool reserves, not user balance)
+      const poolReserve = POOL_RESERVES[fromToken.symbol] || 10000
+      const impact = calculatePriceImpact(parseFloat(fromAmount), poolReserve)
       setPriceImpact(impact)
     } else {
       setToAmount('')
@@ -63,23 +64,27 @@ export function SwapTerminal() {
   }, [fromAmount, fromToken, toToken, ratesLoaded])
 
   const handleSwapTokens = () => {
-    const temp = fromToken
+    // swap token selection and swap the input amounts sensibly
+    const prevFrom = fromToken
     setFromToken(toToken)
-    setToToken(temp)
+    setToToken(prevFrom)
+    // set the from amount to previous estimated toAmount so user sees the swapped amount
     setFromAmount(toAmount)
   }
 
   const handleMaxClick = () => {
-    const balance = userBalances[fromToken.symbol as keyof typeof userBalances]
+    const balance = userBalances[fromToken.symbol as keyof typeof userBalances] ?? 0
+    // Keep decimals reasonable
     setFromAmount(balance.toString())
   }
 
   const handleSwap = async () => {
+    const parsed = parseFloat(fromAmount)
     // Input validation
     const validation = validateSwapInput(
-      parseFloat(fromAmount),
+      parsed,
       fromToken.symbol,
-      userBalances[fromToken.symbol as keyof typeof userBalances],
+      userBalances[fromToken.symbol as keyof typeof userBalances] ?? 0,
       priceImpact
     )
     
@@ -101,7 +106,7 @@ export function SwapTerminal() {
         <div>
           <p className="font-semibold">Swap Successful!</p>
           <p className="text-sm opacity-80">
-            Swapped {fromAmount} {fromToken.symbol} for {toAmount} {toToken.symbol}
+            Swapped {fromAmount} {fromToken.symbol} for {toAmount || '—'} {toToken.symbol}
           </p>
         </div>,
         { duration: 5000 }
@@ -109,16 +114,17 @@ export function SwapTerminal() {
       setIsSwapping(false)
       setFromAmount('')
       setToAmount('')
-    }, 2000)
+    }, 1400)
   }
 
   const isSwapDisabled = 
-    !fromAmount || 
+    fromAmount === '' || 
+    isNaN(parseFloat(fromAmount)) ||
     parseFloat(fromAmount) <= 0 || 
     isSwapping || 
     priceImpact > 5 || 
     !ratesLoaded ||
-    parseFloat(fromAmount) > userBalances[fromToken.symbol as keyof typeof userBalances]
+    parseFloat(fromAmount) > (userBalances[fromToken.symbol as keyof typeof userBalances] ?? 0)
 
   return (
     <div className="glassmorphism-dark rounded-3xl p-8 relative overflow-hidden">
@@ -158,18 +164,19 @@ export function SwapTerminal() {
         
         <div className="flex items-center justify-between">
           <input
-            type="number"
+            inputMode="decimal"
+            type="text"
             value={fromAmount}
             onChange={(e) => {
+              // allow user to type freely; validation happens on swap
               const value = e.target.value
-              if (validateSwapInput(parseFloat(value), fromToken.symbol, userBalances[fromToken.symbol as keyof typeof userBalances], priceImpact).isValid) {
-                setFromAmount(value)
+              // Basic input sanitization: allow digits, dot and comma
+              if (/^[0-9]*[.,]?[0-9]*$/.test(value) || value === '') {
+                setFromAmount(value.replace(',', '.'))
               }
             }}
             placeholder="0.0"
             className="w-full bg-transparent text-3xl font-bold outline-none placeholder:text-gray-600"
-            min="0"
-            step="any"
           />
           
           <div className="flex items-center space-x-3">
@@ -186,7 +193,8 @@ export function SwapTerminal() {
       <div className="relative my-4">
         <button
           onClick={handleSwapTokens}
-          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 p-3 rounded-full glassmorphism border-4 border-background hover:scale-110 transition-transform duration-200"
+          aria-label="Switch tokens"
+          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 p-3 rounded-full glassmorphism border-4 border-background hover:scale-110 transition-transform duration-300"
         >
           <ArrowDownUp size={20} className="text-neon-cyan" />
         </button>
