@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter, Geist } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { Web3Provider } from '@/components/Web3Provider'
+import AnimatedBackground from '@/components/AnimatedBackground'
 
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-inter',
-})
-
-const geist = Geist({
-  subsets: ['latin'],
-  variable: '--font-geist',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -26,16 +23,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${geist.variable}`}>
+    <html lang="en" className={`${inter.variable}`}>
       <body className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 overflow-x-hidden">
-        {/* Animated Background Elements */}
-        <div className="fixed inset-0 z-0">
-          <div className="absolute inset-0 bg-grid bg-[size:50px_50px] opacity-10" />
-          <div className="absolute top-0 left-1/4 w-72 h-72 bg-neon-purple/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-neon-cyan/10 rounded-full blur-3xl animate-float animation-delay-2000" />
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-neon-pink/10 rounded-full blur-3xl animate-float animation-delay-4000" />
-        </div>
-        
+        {/* Animated Background Elements (client component with smoother motion & parallax) */}
+        <AnimatedBackground />
+
         <Web3Provider>
           <main className="relative z-10">
             {children}
