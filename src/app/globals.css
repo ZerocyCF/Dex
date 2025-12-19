@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -33,11 +32,17 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
   
+  /* Use the Inter variable provided by next/font (set on <html> as a CSS variable) */
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   ::-webkit-scrollbar {
@@ -55,6 +60,31 @@
   
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-primary/50;
+  }
+
+  /* Small utility animation delays used in layout */
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* Subtle pulsing glow used in wallet/network indicators */
+  .animate-pulse-glow {
+    animation: pulse-glow 2.6s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.08), 0 0 30px rgba(0, 243, 255, 0.04);
+    will-change: transform, opacity;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse-glow,
+    .animate-float,
+    .animate-gradient {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 }
 
@@ -90,6 +120,12 @@
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
   100% { background-position: 1000px 0; }
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .animate-shimmer {
