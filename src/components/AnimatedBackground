@@ -1,0 +1,132 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+
+/**
+ * AnimatedBackground
+ * - 3 floating blurred blobs with different sizes/ratios
+ * - subtle parallax following pointer movement
+ * - uses CSS transforms (GPU accelerated) and Framer Motion looping animations
+ * - respects prefers-reduced-motion
+ */
+
+export default function AnimatedBackground() {
+  const [pointer, setPointer] = useState({ x: 0, y: 0 })
+  const [isReduced, setIsReduced] = useState(false)
+
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setIsReduced(mql.matches)
+    const handler = () => setIsReduced(mql.matches)
+    mql.addEventListener?.('change', handler)
+    return () => mql.removeEventListener?.('change', handler)
+  }, [])
+
+  // map pointer to small translate offsets for parallax
+  const parallax = useMemo(() => {
+    const calc = (factor: number) => ({
+      x: (pointer.x - window.innerWidth / 2) * factor,
+      y: (pointer.y - window.innerHeight / 2) * factor,
+    })
+    return calc
+  }, [pointer.x, pointer.y])
+
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => {
+      setPointer({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener('pointermove', onPointer)
+    return () => window.removeEventListener('pointermove', onPointer)
+  }, [])
+
+  if (isReduced) {
+    // Very minimal static background when reduced motion is enabled
+    return (
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-grid bg-[size:50px_50px] opacity-8" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 bg-grid bg-[size:50px_50px] opacity-10" />
+
+      <motion.div
+        aria-hidden
+        className="absolute rounded-full blur-3xl"
+        style={{
+          width: 288,
+          height: 288,
+          left: '12%',
+          top: '4%',
+          background: 'rgba(157,0,255,0.12)', // neon purple
+          willChange: 'transform, opacity',
+        }}
+        animate={{
+          y: ['0px', '-18px', '0px'],
+          x: ['0px', '8px', '0px'],
+          opacity: [0.9, 0.7, 0.9],
+          translateX: `${parallax(0.02).x}px`,
+          translateY: `${parallax(0.02).y}px`,
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      <motion.div
+        aria-hidden
+        className="absolute rounded-full blur-3xl"
+        style={{
+          width: 384,
+          height: 384,
+          right: '8%',
+          bottom: '6%',
+          background: 'rgba(0,243,255,0.10)', // neon cyan
+          willChange: 'transform, opacity',
+        }}
+        animate={{
+          y: ['0px', '-24px', '0px'],
+          x: ['0px', '-12px', '0px'],
+          opacity: [0.85, 0.6, 0.85],
+          translateX: `${parallax(0.03).x}px`,
+          translateY: `${parallax(0.03).y}px`,
+        }}
+        transition={{
+          duration: 9,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      <motion.div
+        aria-hidden
+        className="absolute rounded-full blur-3xl"
+        style={{
+          width: 256,
+          height: 256,
+          left: '36%',
+          top: '45%',
+          background: 'rgba(255,0,255,0.09)', // neon pink
+          willChange: 'transform, opacity',
+        }}
+        animate={{
+          y: ['0px', '-14px', '0px'],
+          x: ['0px', '6px', '0px'],
+          opacity: [0.9, 0.65, 0.9],
+          translateX: `${parallax(0.018).x}px`,
+          translateY: `${parallax(0.018).y}px`,
+        }}
+        transition={{
+          duration: 6.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+    </div>
+  )
+}
